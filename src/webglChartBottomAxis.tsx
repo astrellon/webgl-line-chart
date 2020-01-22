@@ -6,7 +6,7 @@ interface Props
     readonly minValue: number;
 }
 
-export default class WebGLChartLeftAxis extends React.PureComponent<Props>
+export default class WebGLChartBottomAxis extends React.PureComponent<Props>
 {
     private ref: React.RefObject<HTMLDivElement> = React.createRef();
 
@@ -43,10 +43,10 @@ export default class WebGLChartLeftAxis extends React.PureComponent<Props>
 
             step *= logFactor;
 
-            const start = Math.ceil(maxValue / step) * step;
-            const end = Math.floor(minValue / step) * step;
+            const start = Math.ceil(minValue / step) * step;
+            const end = Math.floor(maxValue / step) * step;
 
-            for (let value = start, i = 0; value > end; value -= step, i++)
+            for (let value = start, i = 0; value <= end; value += step, i++)
             {
                 const percent = (value - minValue) / valueHeight;
                 if (percent < 0 || percent > 1)
@@ -54,19 +54,19 @@ export default class WebGLChartLeftAxis extends React.PureComponent<Props>
                     continue;
                 }
                 const style: CSSProperties = {
-                    top: ((1 - percent) * 100) + '%'
+                    left: (percent * 100) + '%'
                 }
 
                 let nearZero = Math.abs(value) < 1e-10;
-                let valueText = nearZero ? '0' : value.toPrecision(2);
-                ticks.push(<span key={i} style={style} className="webgl-chart__left-axis-tick">
-                    {valueText}
+                let valueText = nearZero ? '0' : value.toPrecision(3);
+                ticks.push(<span key={i} style={style} className="webgl-chart__bottom-axis-tick">
+                    <span className="text">{valueText}</span>
                     <span className="tick" />
                 </span>);
             }
         }
 
-        return <div ref={this.ref} className="webgl-chart__left-axis-bumper webgl-chart__left-axis">
+        return <div ref={this.ref} className="webgl-chart__bottom-axis-bumper webgl-chart__bottom-axis">
             { ticks }
         </div>;
     }

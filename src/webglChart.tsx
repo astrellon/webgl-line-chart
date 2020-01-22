@@ -2,6 +2,7 @@ import React from 'react';
 import { WebGLChartState } from './webglChartStore';
 import WebGLLineChart from './webglLineChart';
 import WebGLChartLeftAxis from './webglChartLeftAxis';
+import WebGLChartBottomAxis from './webglChartBottomAxis';
 
 interface Props
 {
@@ -43,18 +44,20 @@ export default class WebGLChart extends React.PureComponent<Props>
             }
         }
 
+        const { viewport } = this.props.chartState;
+
         return <div className="webgl-chart">
             <div className="webgl-chart__header">
                 <div className="webgl-chart__left-axis-bumper"></div>
                 <h1 className="webgl-chart__title">Title</h1>
             </div>
             <div className="webgl-chart__body">
-                <WebGLChartLeftAxis viewport={this.props.chartState.viewport} />
+                <WebGLChartLeftAxis minValue={viewport.minValue} maxValue={viewport.maxValue} />
                 <canvas className='webgl-chart__canvas' ref={this.canvasRef} />
             </div>
             <div className="webgl-chart__footer">
                 <div className="webgl-chart__left-axis-bumper"></div>
-                <div className="webgl-chart__bottom-axis">Bottom Axis</div>
+                <WebGLChartBottomAxis minValue={viewport.minTime} maxValue={viewport.maxTime} />
             </div>
         </div>;
     }

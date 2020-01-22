@@ -30,6 +30,26 @@
     &__bottom-axis {
         flex: 1;
         border-top: 0.1rem solid black;
+        position: relative;
+
+        &-tick {
+            position: absolute;
+            display: flex;
+            top: -0.1rem;
+
+            .text {
+                transform: translate(-50%, 0.5rem);
+            }
+
+            .tick {
+                position: absolute;
+                left: 0;
+                background: black;
+                height: 0.4rem;
+                width: 0.1rem;
+                display: inline-block;
+            }
+        }
     }
 
     &__left-axis {
@@ -44,6 +64,7 @@
             transform: translateY(-50%);
 
             .tick {
+                margin-left: 0.3rem;
                 background: black;
                 height: 0.1rem;
                 width: 0.4rem;

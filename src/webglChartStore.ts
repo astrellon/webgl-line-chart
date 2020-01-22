@@ -158,7 +158,7 @@ export default class WebGLChartStore
         }
     }
 
-    public static zoomTimeViewport(chartId: string, factor: number): Modifier<State>
+    public static zoomValueViewport(chartId: string, factor: number): Modifier<State>
     {
         return (state: State) =>
         {
@@ -171,6 +171,28 @@ export default class WebGLChartStore
             const viewport = {...chartState.viewport};
             viewport.maxValue *= factor;
             viewport.minValue *= factor;
+
+            const newChartState = { ...chartState, viewport }
+
+            return modifyChartState(state, chartId, newChartState);
+        }
+    }
+
+    public static zoomTimeViewport(chartId: string, factor: number): Modifier<State>
+    {
+        return (state: State) =>
+        {
+            let chartState = state.webglChartState.charts[chartId];
+            if (!chartState)
+            {
+                return state;
+            }
+
+            const viewport = {...chartState.viewport};
+            const middle = (viewport.maxTime + viewport.minTime) * 0.5;
+            const diff = viewport.maxTime - middle;
+            viewport.maxTime = middle + diff * factor;
+            viewport.minTime = middle - diff * factor;
 
             const newChartState = { ...chartState, viewport }
 
