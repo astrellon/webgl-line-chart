@@ -1,4 +1,59 @@
-.webgl-canvas {
+.webgl-chart {
+    display: flex;
     width: 100%;
-    height: 500px;
+    height: 32rem;
+    flex-direction: column;
+
+    &__header {
+        display: flex;
+        flex: 0 1 auto;
+        flex-direction: row;
+    }
+
+    &__body {
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: row;
+    }
+
+    &__footer {
+        display: flex;
+        flex: 0 1 auto;
+        flex-direction: row;
+        margin-top: 0.5rem;
+    }
+
+    &__canvas {
+        flex: 1 1 auto;
+    }
+
+    &__bottom-axis {
+        flex: 1;
+        border-top: 0.1rem solid black;
+    }
+
+    &__left-axis {
+        border-right: 0.1rem solid black;
+        position: relative;
+
+        &-tick {
+            position: absolute;
+            display: flex;
+            right: -0.1rem;
+            align-items: center;
+            transform: translateY(-50%);
+
+            .tick {
+                background: black;
+                height: 0.1rem;
+                width: 0.4rem;
+                display: inline-block;
+            }
+        }
+    }
+
+    &__left-axis-bumper {
+        width: 6rem;
+        margin-right: 0.5rem;
+    }
 }

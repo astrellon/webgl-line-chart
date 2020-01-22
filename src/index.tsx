@@ -86,3 +86,15 @@ store.subscribeAny((state: State) =>
 {
     render(state);
 });
+
+rootEl.addEventListener('wheel', (e) =>
+{
+    if (e.deltaY > 0)
+    {
+        store.execute(WebGLChartStore.zoomTimeViewport('chart1', 0.9));
+    }
+    else if (e.deltaY < 0)
+    {
+        store.execute(WebGLChartStore.zoomTimeViewport('chart1', 1.1));
+    }
+})

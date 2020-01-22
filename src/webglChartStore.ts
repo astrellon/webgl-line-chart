@@ -53,6 +53,22 @@ function modifyWebGL(state: State, webglChartState: Partial<WebGLChartsState>): 
     return {webglChartState: Object.assign({}, state.webglChartState, webglChartState)}
 }
 
+function modifyChartState(state: State, chartId: string, chartState: Partial<WebGLChartState>): Partial<State>
+{
+    const newCharts: WebGLChartIdToState =
+    {
+        ...state.webglChartState.charts,
+    };
+
+    // TODO Fix once have Editable
+    (newCharts as any)[chartId] = chartState;
+
+    return modifyWebGL(state,
+    {
+        charts: newCharts
+    });
+}
+
 function calculateViewportForAll(dataSeries: WebGLDataSeries[])
 {
     let minValue = Number.MAX_VALUE;
@@ -98,12 +114,7 @@ export default class WebGLChartStore
     {
         return (state: State) =>
         {
-            const newCharts: WebGLChartIdToState =
-            {
-                ...state.webglChartState.charts,
-            };
-
-            let chartState = newCharts[chartId];
+            let chartState = state.webglChartState.charts[chartId];
             if (!chartState)
             {
                 const viewport = calculateViewportForAll(dataSeries);
@@ -123,13 +134,7 @@ export default class WebGLChartStore
                 }
             }
 
-            // TODO Fix once have Editable
-            (newCharts as any)[chartId] = chartState;
-
-            return modifyWebGL(state,
-            {
-                charts: newCharts
-            });
+            return modifyChartState(state, chartId, chartState);
         }
     }
 
@@ -140,7 +145,7 @@ export default class WebGLChartStore
             let chartState = state.webglChartState.charts[chartId];
             if (!chartState)
             {
-                return null;
+                return state;
             }
 
             const newChartState =
@@ -149,13 +154,27 @@ export default class WebGLChartStore
                 viewport: calculateViewportForAll(chartState.dataSeries)
             }
 
-            const newCharts =
+            return modifyChartState(state, chartId, newChartState);
+        }
+    }
+
+    public static zoomTimeViewport(chartId: string, factor: number): Modifier<State>
+    {
+        return (state: State) =>
+        {
+            let chartState = state.webglChartState.charts[chartId];
+            if (!chartState)
             {
-                ...state.webglChartState.charts,
-                [chartId]: newChartState
+                return state;
             }
 
-            return modifyWebGL(state, { charts: newCharts });
+            const viewport = {...chartState.viewport};
+            viewport.maxValue *= factor;
+            viewport.minValue *= factor;
+
+            const newChartState = { ...chartState, viewport }
+
+            return modifyChartState(state, chartId, newChartState);
         }
     }
 }

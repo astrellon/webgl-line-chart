@@ -28,10 +28,19 @@ export default class WebGLLineChart
     constructor(canvas: HTMLCanvasElement)
     {
         this.canvas = canvas;
-        this.gl = this.canvas.getContext('webgl');
 
-        this.canvas.width = this.canvas.offsetWidth;
-        this.canvas.height = this.canvas.offsetHeight;
+        // Premultiplied Alpha fixes an issue in Firefox where transparent
+        // chart colours render weirdly.
+        this.gl = this.canvas.getContext('webgl', {
+            premultipliedAlpha: false
+        });
+
+        const width = this.canvas.offsetWidth;
+        const height = this.canvas.offsetHeight;
+        this.canvas.width = width * window.devicePixelRatio;
+        this.canvas.height = height * window.devicePixelRatio;
+        this.canvas.style.width = `${width}px`;
+        this.canvas.style.height = `${height}px`;
 
         this.viewMatrix = createMat4();
         this.cameraMatrix = createMat4();
@@ -43,7 +52,7 @@ export default class WebGLLineChart
 
         this.gl.useProgram(this.shaderProgram);
 
-        this.gl.clearColor(0.0, 0.0, 0.0, 1.0);  // Clear to black, fully opaque
+        this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
         this.gl.disable(this.gl.CULL_FACE);
 
         this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
