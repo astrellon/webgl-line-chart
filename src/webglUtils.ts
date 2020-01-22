@@ -1,3 +1,7 @@
+import { WebGLDataSeries } from "./webglChartStore";
+import WebGLMesh from "./webglMesh";
+import { translateMat4World } from "./mat4";
+
 export const DefaultVertexShader = `attribute vec4 vertexPos;
 
 uniform mat4 view;
@@ -65,4 +69,44 @@ export function createMesh(gl: WebGLRenderingContext, arr: Float32Array)
     gl.bindBuffer(gl.ARRAY_BUFFER, buf);
     gl.bufferData(gl.ARRAY_BUFFER, arr, gl.STATIC_DRAW);
     return buf;
+}
+
+export function createMinMaxMesh(gl: WebGLRenderingContext, dataSeries: WebGLDataSeries)
+{
+    const { data, colour } = dataSeries;
+
+    const meshPoints = new Float32Array(data.length * 2);
+    const xStep = dataSeries.sqs;
+    for (let i = 0, j = 0, x = 0; i < data.length; i += 2, x++)
+    {
+        const xPos = x * xStep;
+        meshPoints[j++] = xPos;
+        meshPoints[j++] = data[i];
+        meshPoints[j++] = xPos;
+        meshPoints[j++] = data[i + 1];
+    }
+
+    const meshBuffer = createMesh(gl, meshPoints);
+    const webglMesh = new WebGLMesh(meshBuffer, gl.TRIANGLE_STRIP, data.length, colour);
+    translateMat4World(webglMesh.transform, [dataSeries.startTime, 0, 0]);
+    return webglMesh;
+}
+
+export function createLineMesh(gl: WebGLRenderingContext, dataSeries: WebGLDataSeries)
+{
+    const { data, colour } = dataSeries;
+
+    const meshPoints = new Float32Array(data.length * 2);
+    const xStep = dataSeries.sqs;
+    for (let i = 0, j = 0, x = 0; i < data.length; i++, x++)
+    {
+        const xPos = x * xStep;
+        meshPoints[j++] = xPos;
+        meshPoints[j++] = data[i];
+    }
+
+    const meshBuffer = createMesh(gl, meshPoints);
+    const webglMesh = new WebGLMesh(meshBuffer, gl.LINE_STRIP, data.length, colour);
+    translateMat4World(webglMesh.transform, [dataSeries.startTime, 0, 0]);
+    return webglMesh;
 }
