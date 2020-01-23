@@ -1,19 +1,11 @@
 import { Modifier } from 'simple-data-store';
 
-export interface WebGLViewport
-{
-    readonly minTime: number;
-    readonly maxTime: number;
-    readonly minValue: number;
-    readonly maxValue: number;
-}
-
-export interface WebGLTimeSelection
+export interface WebGLTimeRange
 {
     readonly minTime: number;
     readonly maxTime: number;
 }
-export interface WebGLValueSelection
+export interface WebGLValueRange
 {
     readonly minValue: number;
     readonly maxValue: number;
@@ -22,8 +14,9 @@ export interface WebGLValueSelection
 export interface WebGLChartState
 {
     readonly dataSeries: WebGLDataSeries[];
-    readonly viewport: WebGLViewport;
     readonly id: string;
+    readonly timeSelectionId: string;
+    readonly valueSelectionId: string;
 }
 
 export interface WebGLDataSeries
@@ -39,8 +32,10 @@ export interface WebGLChartIdToState { readonly [id: string]: WebGLChartState }
 export interface WebGLChartsState
 {
     readonly charts: WebGLChartIdToState;
-    readonly timeSelections: { [timeSelectId: string]: WebGLTimeSelection };
-    readonly valueSelections: { [valueSelectId: string]: WebGLValueSelection };
+    readonly timeSelections: { [timeSelectId: string]: WebGLTimeRange };
+    readonly valueSelections: { [valueSelectId: string]: WebGLValueRange };
+    readonly timeViewports: { [timeSelectId: string]: WebGLTimeRange };
+    readonly valueViewports: { [valueSelectId: string]: WebGLValueRange };
 }
 
 export interface State
@@ -61,7 +56,7 @@ function modifyChartState(state: State, chartId: string, chartState: Partial<Web
     };
 
     // TODO Fix once have Editable
-    (newCharts as any)[chartId] = chartState;
+    (newCharts as any)[chartId] = {...newCharts[chartId], ...chartState};
 
     return modifyWebGL(state,
     {
@@ -69,26 +64,81 @@ function modifyChartState(state: State, chartId: string, chartState: Partial<Web
     });
 }
 
-function calculateViewportForAll(dataSeries: WebGLDataSeries[])
+function modifyTimeViewport(state: State, viewportId: string, timeViewport: WebGLTimeRange): Partial<State>
+{
+    return modifyWebGL(state,
+    {
+        timeViewports: {
+            ...state.webglChartState.timeViewports,
+            [viewportId]: timeViewport
+        }
+    });
+}
+
+function modifyValueViewport(state: State, viewportId: string, valueViewport: WebGLValueRange): Partial<State>
+{
+    return modifyWebGL(state,
+    {
+        valueViewports: {
+            ...state.webglChartState.valueViewports,
+            [viewportId]: valueViewport
+        }
+    });
+}
+
+function modifyTimeSelection(state: State, selectionId: string, timeSelection: WebGLTimeRange): Partial<State>
+{
+    return modifyWebGL(state,
+    {
+        timeSelections: {
+            ...state.webglChartState.timeSelections,
+            [selectionId]: timeSelection
+        }
+    });
+}
+
+function modifyValueSelection(state: State, selectionId: string, valueSelection: WebGLValueRange): Partial<State>
+{
+    return modifyWebGL(state,
+    {
+        valueSelections: {
+            ...state.webglChartState.valueSelections,
+            [selectionId]: valueSelection
+        }
+    });
+}
+
+function calculateValueRangeForAll(dataSeries: WebGLDataSeries[]): WebGLValueRange
 {
     let minValue = Number.MAX_VALUE;
     let maxValue = Number.MIN_VALUE;
+
+    for (let data of dataSeries)
+    {
+        const viewport = calculateValueRange(data);
+        minValue = Math.min(viewport.minValue, minValue);
+        maxValue = Math.max(viewport.maxValue, maxValue);
+    }
+
+    return { minValue, maxValue }
+}
+
+function calculateTimeRangeForAll(dataSeries: WebGLDataSeries[]): WebGLTimeRange
+{
     let minTime = Number.MAX_VALUE;
     let maxTime = Number.MIN_VALUE;
 
     for (let data of dataSeries)
     {
-        const viewport = calculateViewport(data);
-        minValue = Math.min(viewport.minValue, minValue);
-        maxValue = Math.max(viewport.maxValue, maxValue);
+        const viewport = calculateTimeRange(data);
         minTime = Math.min(viewport.minTime, minTime);
         maxTime = Math.max(viewport.maxTime, maxTime);
     }
 
-    return { minValue, maxValue, minTime, maxTime }
+    return { minTime, maxTime }
 }
 
-function calculateViewport(dataSeries: WebGLDataSeries)
+function calculateValueRange(dataSeries: WebGLDataSeries): WebGLValueRange
 {
     let minValue = Number.MAX_VALUE;
     let maxValue = Number.MIN_VALUE;
@@ -99,13 +149,18 @@ function calculateViewport(dataSeries: WebGLDataSeries)
         maxValue = Math.max(v, maxValue);
     }
 
-    let minTime = dataSeries.startTime;
+    return { minValue, maxValue }
+}
+
+function calculateTimeRange(dataSeries: WebGLDataSeries): WebGLTimeRange
+{
+    const minTime = dataSeries.startTime;
 
     // Min Max data series are a combination of two data series with each value zipped together.
-    let length = dataSeries.type === 'line' ? dataSeries.data.length : dataSeries.data.length * 0.5;
-    let maxTime = dataSeries.startTime + dataSeries.sqs * length;
+    const length = dataSeries.type === 'line' ? dataSeries.data.length : dataSeries.data.length * 0.5;
+    const maxTime = dataSeries.startTime + dataSeries.sqs * length;
 
-    return { minValue, maxValue, minTime, maxTime }
+    return { minTime, maxTime }
 }
 
 export default class WebGLChartStore
@@ -115,14 +170,29 @@ export default class WebGLChartStore
         return (state: State) =>
         {
             let chartState = state.webglChartState.charts[chartId];
+            let valueViewports = state.webglChartState.valueViewports;
+            let timeViewports = state.webglChartState.timeViewports;
+
             if (!chartState)
             {
-                const viewport = calculateViewportForAll(dataSeries);
                 chartState =
                 {
                     dataSeries: dataSeries,
-                    viewport: viewport,
-                    id: chartId
+                    id: chartId,
+                    timeSelectionId: chartId,
+                    valueSelectionId: chartId
+                }
+
+                const valueViewport = calculateValueRangeForAll(dataSeries);
+                const timeViewport = calculateTimeRangeForAll(dataSeries);
+
+                valueViewports = {
+                    ...valueViewports,
+                    [chartState.valueSelectionId]: valueViewport
+                }
+                timeViewports = {
+                    ...timeViewports,
+                    [chartState.timeSelectionId]: timeViewport
                 }
             }
             else
@@ -134,11 +204,18 @@ export default class WebGLChartStore
                 }
             }
 
-            return modifyChartState(state, chartId, chartState);
+            return modifyWebGL(state, {
+                charts: {
+                    ...state.webglChartState.charts,
+                    [chartId]: chartState
+                },
+                valueViewports,
+                timeViewports
+            })
         }
     }
 
-    public static resetViewport(chartId: string): Modifier<State>
+    public static resetTimeViewport(chartId: string, timeViewportId: string): Modifier<State>
     {
         return (state: State) =>
         {
@@ -148,17 +225,12 @@ export default class WebGLChartStore
                 return state;
             }
 
-            const newChartState =
-            {
-                ...chartState,
-                viewport: calculateViewportForAll(chartState.dataSeries)
-            }
-
-            return modifyChartState(state, chartId, newChartState);
+            const viewport = calculateTimeRangeForAll(chartState.dataSeries);
+            return modifyTimeViewport(state, timeViewportId, viewport);
         }
     }
 
-    public static zoomValueViewport(chartId: string, factor: number): Modifier<State>
+    public static resetValueViewport(chartId: string, valueViewportId: string): Modifier<State>
     {
         return (state: State) =>
         {
@@ -168,35 +240,69 @@ export default class WebGLChartStore
                 return state;
             }
 
-            const viewport = {...chartState.viewport};
-            viewport.maxValue *= factor;
-            viewport.minValue *= factor;
-
-            const newChartState = { ...chartState, viewport }
-
-            return modifyChartState(state, chartId, newChartState);
+            const viewport = calculateValueRangeForAll(chartState.dataSeries);
+            return modifyValueViewport(state, valueViewportId, viewport);
         }
     }
 
-    public static zoomTimeViewport(chartId: string, factor: number): Modifier<State>
+    public static setTimeSelection(timeSelectionId: string, timeSelection: WebGLTimeRange): Modifier<State>
+    {
+        return (state: State) => modifyTimeSelection(state, timeSelectionId, timeSelection);
+    }
+
+    public static setValueSelection(valueSelectionId: string, valueSelection: WebGLValueRange): Modifier<State>
+    {
+        return (state: State) => modifyValueSelection(state, valueSelectionId, valueSelection);
+    }
+
+    public static setTimeViewport(timeViewportId: string, timeViewport: WebGLTimeRange): Modifier<State>
+    {
+        return (state: State) => modifyTimeViewport(state, timeViewportId, timeViewport);
+    }
+
+    public static setValueViewport(valueViewportId: string, valueViewport: WebGLValueRange): Modifier<State>
+    {
+        return (state: State) => modifyValueViewport(state, valueViewportId, valueViewport);
+    }
+
+    public static zoomValueViewport(valueViewportId: string, factor: number): Modifier<State>
     {
         return (state: State) =>
         {
-            let chartState = state.webglChartState.charts[chartId];
-            if (!chartState)
+            const viewport = state.webglChartState.valueViewports[valueViewportId];
+            if (!viewport)
             {
                 return state;
             }
 
-            const viewport = {...chartState.viewport};
+            const newViewport = {
+                maxValue: viewport.maxValue * factor,
+                minValue: viewport.minValue * factor
+            };
+
+            return modifyValueViewport(state, valueViewportId, newViewport);
+        }
+    }
+
+    public static zoomTimeViewport(timeViewportId: string, factor: number): Modifier<State>
+    {
+        return (state: State) =>
+        {
+            const viewport = state.webglChartState.timeViewports[timeViewportId];
+            if (!viewport)
+            {
+                return state;
+            }
+
             const middle = (viewport.maxTime + viewport.minTime) * 0.5;
             const diff = viewport.maxTime - middle;
-            viewport.maxTime = middle + diff * factor;
-            viewport.minTime = middle - diff * factor;
 
-            const newChartState = { ...chartState, viewport }
+            const newViewport = {
+                maxTime: middle + diff * factor,
+                minTime: middle - diff * factor
+            }
 
-            return modifyChartState(state, chartId, newChartState);
+            return modifyTimeViewport(state, timeViewportId, newViewport);
         }
     }
 }

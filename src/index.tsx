@@ -1,15 +1,17 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import DataStore from "simple-data-store";
-import WebGLChartStore, { State, WebGLChartState, WebGLDataSeries } from "./webglChartStore";
-import WebGLChart from './webglChart';
+import WebGLChartStore, { State, WebGLChartState, WebGLDataSeries, WebGLTimeRange, WebGLValueRange } from "./webglChartStore";
+import WebGLChart, { WebGLSelectionState, TimeValuePair } from './webglChart';
 
 const rootEl = document.getElementById('root');
 const store = new DataStore<State>({
     webglChartState: {
         charts: {},
         timeSelections: {},
-        valueSelections: {}
+        valueSelections: {},
+        timeViewports: {},
+        valueViewports: {}
     }
 });
 
@@ -76,9 +78,67 @@ function render(state: State)
     ReactDOM.render(<div>
         <h1>WebGL React</h1>
         { Object.values(state.webglChartState.charts).map((chartState: WebGLChartState) =>
-            <WebGLChart key={chartState.id} chartState={chartState} />
+            {
+                const timeSelection = state.webglChartState.timeSelections[chartState.timeSelectionId];
+                const valueSelection = state.webglChartState.valueSelections[chartState.valueSelectionId];
+                const timeViewports = state.webglChartState.timeViewports[chartState.timeSelectionId];
+                const valueViewports = state.webglChartState.valueViewports[chartState.valueSelectionId];
+
+                return <WebGLChart key={chartState.id} chartState={chartState}
+                    timeSelection={timeSelection} valueSelection={valueSelection}
+                    timeViewport={timeViewports} valueViewport={valueViewports}
+                    onTimeSelect={(timeSelectionId, selectState, timeSelect) => onChartTimeSelect(timeSelectionId, selectState, timeSelect)}
+                    onValueSelect={(valueSelectionId, selectState, valueSelect) => onChartValueSelect(valueSelectionId, selectState, valueSelect)}
+                    onResetTimeViewport={(chartId, timeViewportId) => onChartResetTimeZoom(chartId, timeViewportId)}
+                    onResetValueViewport={(chartId, valueViewportId) => onChartResetValueZoom(chartId, valueViewportId)}
+                    />
+            }
         )}
     </div>, rootEl);
+}
+
+function onChartResetTimeZoom(chartId: string, timeViewportId: string)
+{
+    store.execute(WebGLChartStore.resetTimeViewport(chartId, timeViewportId))
+}
+
+function onChartResetValueZoom(chartId: string, valueViewportId: string)
+{
+    store.execute(WebGLChartStore.resetValueViewport(chartId, valueViewportId))
+}
+
+function onChartTimeSelect(timeSelectionId: string, selectState: WebGLSelectionState, timeSelect: WebGLTimeRange)
+{
+    if (selectState === 'done')
+    {
+        store.execute(WebGLChartStore.setTimeSelection(timeSelectionId, null));
+        store.execute(WebGLChartStore.setTimeViewport(timeSelectionId, timeSelect));
+    }
+    else if (selectState === 'in-progress')
+    {
+        store.execute(WebGLChartStore.setTimeSelection(timeSelectionId, timeSelect));
+    }
+    else
+    {
+        store.execute(WebGLChartStore.setTimeSelection(timeSelectionId, null));
+    }
+}
+
+function onChartValueSelect(valueSelectionId: string, selectState: WebGLSelectionState, valueSelect: WebGLValueRange)
+{
+    if (selectState === 'done')
+    {
+        store.execute(WebGLChartStore.setValueSelection(valueSelectionId, null));
+        store.execute(WebGLChartStore.setValueViewport(valueSelectionId, valueSelect));
+    }
+    else if (selectState === 'in-progress')
+    {
+        store.execute(WebGLChartStore.setValueSelection(valueSelectionId, valueSelect));
+    }
+    else
+    {
+        store.execute(WebGLChartStore.setValueSelection(valueSelectionId, null));
+    }
 }
 
 render(store.state());

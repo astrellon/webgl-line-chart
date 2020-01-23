@@ -1,6 +1,6 @@
 import { createMat4, setBasicView, setOrtho } from "./mat4";
 import WebGLMesh from "./webglMesh";
-import { WebGLDataSeries, WebGLViewport } from "./webglChartStore";
+import { WebGLDataSeries, WebGLTimeRange, WebGLValueRange } from "./webglChartStore";
 import { initShaderProgram, createLineMesh, createMinMaxMesh } from "./webglUtils";
 
 interface DataSeriesBufferPair
@@ -82,9 +82,9 @@ export default class WebGLLineChart
         this.gl.uniformMatrix4fv(this.modelUniform, false, model);
     }
 
-    public render(viewport: WebGLViewport)
+    public render(timeViewport: WebGLTimeRange, valueViewport: WebGLValueRange)
     {
-        setOrtho(this.cameraMatrix, viewport.minTime, viewport.maxTime, viewport.minValue, viewport.maxValue, 0.1, 50);
+        setOrtho(this.cameraMatrix, timeViewport.minTime, timeViewport.maxTime, valueViewport.minValue, valueViewport.maxValue, 0.1, 50);
         this.gl.uniformMatrix4fv(this.cameraUniform, false, this.cameraMatrix);
 
         for (let dataPair of this.meshes)
