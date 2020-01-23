@@ -20,10 +20,12 @@ export type ResetValueViewportHandler = (chartId: string, valueViewportId: strin
 interface Props
 {
     readonly chartState: WebGLChartState;
+
     readonly timeViewport: WebGLTimeRange;
     readonly valueViewport: WebGLValueRange;
     readonly timeSelection: WebGLTimeRange;
     readonly valueSelection: WebGLValueRange;
+
     readonly onTimeSelect: WebGLTimeSelectionHandler;
     readonly onValueSelect: WebGLValueSelectionHandler;
     readonly onResetTimeViewport: ResetTimeViewportHandler;

@@ -48,17 +48,19 @@ function createMinMaxMesh(startTime: number, top: number[], bottom: number[], co
         sqs: 1 / top.length,
         type: 'minmax',
         data: result,
+        pointSize: 1
     }
 }
 
-function createLineMesh(startTime: number, data: number[], colour: number[]): WebGLDataSeries
+function createLineMesh(startTime: number, data: number[], colour: number[], isDots: boolean, pointSize: number = 1): WebGLDataSeries
 {
     return {
         colour,
         startTime,
         data,
         sqs: 1 / data.length,
-        type: 'line'
+        type: isDots ? 'dots' : 'line',
+        pointSize
     }
 }
 
@@ -67,10 +69,11 @@ const bottom = createSineWave(500, 1, -2, 1.1);
 const middle = createSineWave(500, 0.5, 0, 0.5);
 
 const minmaxMesh = createMinMaxMesh(50, top, bottom, [1, 0, 0, 0.5]);
-const middleMesh = createLineMesh(50, middle, [1, 0, 0, 1]);
+const middleMesh = createLineMesh(50, middle, [1, 0, 0, 1], false);
+const middleDotsMesh = createLineMesh(50, middle, [1, 0, 0, 1], true, 10);
 
 store.execute(WebGLChartStore.setChartData('chart1', [
-    minmaxMesh, middleMesh
+    minmaxMesh, middleDotsMesh, middleMesh
 ]));
 
 function render(state: State)

@@ -17,6 +17,7 @@ export default class WebGLLineChart
     private viewMatrix: Matrix4x4 = new Matrix4x4();
     private cameraMatrix: Matrix4x4 = new Matrix4x4();
 
+    private pointSizeUniform: WebGLUniformLocation;
     private viewUniform: WebGLUniformLocation;
     private cameraUniform: WebGLUniformLocation;
     private modelUniform: WebGLUniformLocation;
@@ -54,6 +55,7 @@ export default class WebGLLineChart
 
         this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
 
+        this.pointSizeUniform = this.gl.getUniformLocation(this.shaderProgram, 'pointSize');
         this.cameraUniform = this.gl.getUniformLocation(this.shaderProgram, 'camera');
         this.viewUniform = this.gl.getUniformLocation(this.shaderProgram, 'view');
         this.modelUniform = this.gl.getUniformLocation(this.shaderProgram, 'model');
@@ -67,6 +69,11 @@ export default class WebGLLineChart
 
         this.gl.bindAttribLocation(this.shaderProgram, 0, 'vertexPos');
         this.gl.enableVertexAttribArray(0);
+    }
+
+    public changePointSize(pointSize: number)
+    {
+        this.gl.uniform1f(this.pointSizeUniform, pointSize);
     }
 
     public changeColour(colour: number[])
@@ -138,12 +145,17 @@ export default class WebGLLineChart
             {
                 if (dataSeries.type === 'line')
                 {
-                    const mesh = createLineMesh(this.gl, dataSeries);
+                    const mesh = createLineMesh(this.gl, dataSeries, this.gl.LINE_STRIP, dataSeries.pointSize);
                     this.meshes.push({mesh, data: dataSeries});
                 }
-                else
+                else if (dataSeries.type === 'minmax')
                 {
                     const mesh = createMinMaxMesh(this.gl, dataSeries);
+                    this.meshes.push({mesh, data: dataSeries});
+                }
+                else if (dataSeries.type === 'dots')
+                {
+                    const mesh = createLineMesh(this.gl, dataSeries, this.gl.POINTS, dataSeries.pointSize);
                     this.meshes.push({mesh, data: dataSeries});
                 }
             }

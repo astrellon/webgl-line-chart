@@ -9,13 +9,15 @@ export default class WebGLMesh
     private readonly mode: GLenum;
     private readonly length: number;
     private readonly colour: number[];
+    private readonly pointSize: number;
 
-    constructor (buffer: WebGLBuffer, mode: GLenum, length: number, colour: number[])
+    constructor (buffer: WebGLBuffer, mode: GLenum, length: number, colour: number[], pointSize: number)
     {
         this.buffer = buffer;
         this.mode = mode;
         this.length = length;
         this.colour = colour;
+        this.pointSize = pointSize;
         this.transform = new Matrix4x4();
     }
 
@@ -24,6 +26,7 @@ export default class WebGLMesh
         const gl = webgl.gl;
         gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
         gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+        webgl.changePointSize(this.pointSize);
         webgl.changeColour(this.colour);
         webgl.changeModelTransform(this.transform.data);
         gl.drawArrays(this.mode, 0, this.length);

@@ -22,10 +22,11 @@ export interface WebGLChartState
 export interface WebGLDataSeries
 {
     readonly data: number[];
-    readonly type: 'line' | 'minmax';
+    readonly type: 'line' | 'minmax' | 'dots';
     readonly colour: number[];
     readonly startTime: number;
     readonly sqs: number;
+    readonly pointSize: number;
 }
 
 export interface WebGLChartIdToState { readonly [id: string]: WebGLChartState }
