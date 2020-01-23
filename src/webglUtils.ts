@@ -1,6 +1,5 @@
 import { WebGLDataSeries } from "./webglChartStore";
 import WebGLMesh from "./webglMesh";
-import { translateMat4World } from "./mat4";
 
 export const DefaultVertexShader = `attribute vec4 vertexPos;
 
@@ -88,7 +87,7 @@ export function createMinMaxMesh(gl: WebGLRenderingContext, dataSeries: WebGLDat
 
     const meshBuffer = createMesh(gl, meshPoints);
     const webglMesh = new WebGLMesh(meshBuffer, gl.TRIANGLE_STRIP, data.length, colour);
-    translateMat4World(webglMesh.transform, [dataSeries.startTime, 0, 0]);
+    webglMesh.transform.translateWorld([dataSeries.startTime, 0, 0]);
     return webglMesh;
 }
 
@@ -107,6 +106,6 @@ export function createLineMesh(gl: WebGLRenderingContext, dataSeries: WebGLDataS
 
     const meshBuffer = createMesh(gl, meshPoints);
     const webglMesh = new WebGLMesh(meshBuffer, gl.LINE_STRIP, data.length, colour);
-    translateMat4World(webglMesh.transform, [dataSeries.startTime, 0, 0]);
+    webglMesh.transform.translateWorld([dataSeries.startTime, 0, 0]);
     return webglMesh;
 }

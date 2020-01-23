@@ -1,7 +1,7 @@
-import { createMat4, setBasicView, setOrtho } from "./mat4";
 import WebGLMesh from "./webglMesh";
 import { WebGLDataSeries, WebGLTimeRange, WebGLValueRange } from "./webglChartStore";
 import { initShaderProgram, createLineMesh, createMinMaxMesh } from "./webglUtils";
+import Matrix4x4 from "./matrix4x4";
 
 interface DataSeriesBufferPair
 {
@@ -14,8 +14,8 @@ export default class WebGLLineChart
     public gl: WebGLRenderingContext;
     private canvas: HTMLCanvasElement;
     private shaderProgram: WebGLProgram;
-    private viewMatrix: Float32Array;
-    private cameraMatrix: Float32Array;
+    private viewMatrix: Matrix4x4 = new Matrix4x4();
+    private cameraMatrix: Matrix4x4 = new Matrix4x4();
 
     private viewUniform: WebGLUniformLocation;
     private cameraUniform: WebGLUniformLocation;
@@ -41,9 +41,6 @@ export default class WebGLLineChart
         this.canvas.height = height * window.devicePixelRatio;
         this.canvas.style.width = `${width}px`;
         this.canvas.style.height = `${height}px`;
-
-        this.viewMatrix = createMat4();
-        this.cameraMatrix = createMat4();
     }
 
     init()
@@ -62,11 +59,11 @@ export default class WebGLLineChart
         this.modelUniform = this.gl.getUniformLocation(this.shaderProgram, 'model');
         this.fragColourUniform = this.gl.getUniformLocation(this.shaderProgram, 'fragColour');
 
-        setBasicView(this.viewMatrix, 10);
-        setOrtho(this.cameraMatrix, -5, 5, -5, 5, 0.1, 50);
+        this.viewMatrix.setBasicView(10);
+        this.cameraMatrix.setOrtho(-5, 5, -5, 5, 0.1, 50);
 
-        this.gl.uniformMatrix4fv(this.cameraUniform, false, this.cameraMatrix);
-        this.gl.uniformMatrix4fv(this.viewUniform, false, this.viewMatrix);
+        this.gl.uniformMatrix4fv(this.cameraUniform, false, this.cameraMatrix.data);
+        this.gl.uniformMatrix4fv(this.viewUniform, false, this.viewMatrix.data);
 
         this.gl.bindAttribLocation(this.shaderProgram, 0, 'vertexPos');
         this.gl.enableVertexAttribArray(0);
@@ -84,8 +81,8 @@ export default class WebGLLineChart
 
     public render(timeViewport: WebGLTimeRange, valueViewport: WebGLValueRange)
     {
-        setOrtho(this.cameraMatrix, timeViewport.minTime, timeViewport.maxTime, valueViewport.minValue, valueViewport.maxValue, 0.1, 50);
-        this.gl.uniformMatrix4fv(this.cameraUniform, false, this.cameraMatrix);
+        this.cameraMatrix.setOrtho(timeViewport.minTime, timeViewport.maxTime, valueViewport.minValue, valueViewport.maxValue, 0.1, 50);
+        this.gl.uniformMatrix4fv(this.cameraUniform, false, this.cameraMatrix.data);
 
         for (let dataPair of this.meshes)
         {

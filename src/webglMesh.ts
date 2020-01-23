@@ -1,9 +1,9 @@
 import WebGLLineChart from "./webglLineChart";
-import { createMat4 } from "./mat4";
+import Matrix4x4 from "./matrix4x4";
 
 export default class WebGLMesh
 {
-    public transform: Float32Array;
+    public transform: Matrix4x4;
 
     private readonly buffer: WebGLBuffer;
     private readonly mode: GLenum;
@@ -16,7 +16,7 @@ export default class WebGLMesh
         this.mode = mode;
         this.length = length;
         this.colour = colour;
-        this.transform = createMat4();
+        this.transform = new Matrix4x4();
     }
 
     render(webgl: WebGLLineChart)
@@ -25,7 +25,7 @@ export default class WebGLMesh
         gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
         gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
         webgl.changeColour(this.colour);
-        webgl.changeModelTransform(this.transform);
+        webgl.changeModelTransform(this.transform.data);
         gl.drawArrays(this.mode, 0, this.length);
     }
 }
