@@ -62,15 +62,15 @@ export default class WebGLChart extends React.PureComponent<Props>
 
     public render()
     {
+        const { valueViewport, timeViewport, valueSelection, timeSelection, chartState } = this.props;
+
         if (this.webgl != null)
         {
-            if (this.webgl.checkForDataSeriesChanges(this.props.chartState.dataSeries))
+            if (this.webgl.checkForDataSeriesChanges(chartState.dataSeries))
             {
-                this.webgl.render(this.props.timeViewport, this.props.valueViewport);
+                this.webgl.render(timeViewport, valueViewport);
             }
         }
-
-        const { valueViewport, timeViewport, valueSelection, timeSelection } = this.props;
 
         return <div className="webgl-chart">
             <div className="webgl-chart__header">
@@ -89,7 +89,7 @@ export default class WebGLChart extends React.PureComponent<Props>
                     onMouseUp={(e) => this.onCanvasMouseUp(e)}
                     >
                     <canvas className='webgl-chart__canvas' ref={this.canvasRef} />
-                    <WebGLChartSelection valueViewport={valueViewport} timeViewport={timeViewport} timeSelect={timeSelection} valueSelect={valueSelection} />
+                    <WebGLChartSelection valueViewport={valueViewport} timeViewport={timeViewport} timeSelect={timeSelection} valueSelect={valueSelection} enableTimeSelect={chartState.enableTimeSelect} enableValueSelect={chartState.enableValueSelect} />
                 </div>
             </div>
             <div className="webgl-chart__footer">
@@ -113,6 +113,32 @@ export default class WebGLChart extends React.PureComponent<Props>
         this.mouseDownPair = this.getTimeValueAtLocation(event.clientX, event.clientY);
     }
 
+    private getTimeSelection(currentMouse: TimeValuePair)
+    {
+        if (!this.props.chartState.enableTimeSelect)
+        {
+            return this.props.timeViewport;
+        }
+
+        const minTime = Math.min(this.mouseDownPair.time, currentMouse.time);
+        const maxTime = Math.max(this.mouseDownPair.time, currentMouse.time);
+
+        return { minTime, maxTime }
+    }
+
+    private getValueSelection(currentMouse: TimeValuePair)
+    {
+        if (!this.props.chartState.enableValueSelect)
+        {
+            return this.props.valueViewport;
+        }
+
+        const minValue = Math.min(this.mouseDownPair.value, currentMouse.value);
+        const maxValue = Math.max(this.mouseDownPair.value, currentMouse.value);
+
+        return { minValue, maxValue }
+    }
+
     private onCanvasMouseMove(event: React.MouseEvent)
     {
         if (this.mouseDownPair.value == null)
@@ -120,15 +146,12 @@ export default class WebGLChart extends React.PureComponent<Props>
             return;
         }
 
-        const pair = this.getTimeValueAtLocation(event.clientX, event.clientY);
+        const currentMouse = this.getTimeValueAtLocation(event.clientX, event.clientY);
+        const timeSelection = this.getTimeSelection(currentMouse);
+        const valueSelection = this.getValueSelection(currentMouse);
 
-        const minTime = Math.min(this.mouseDownPair.time, pair.time);
-        const maxTime = Math.max(this.mouseDownPair.time, pair.time);
-        this.props.onTimeSelect(this.props.chartState.timeSelectionId, 'in-progress', { minTime, maxTime });
-
-        const minValue = Math.min(this.mouseDownPair.value, pair.value);
-        const maxValue = Math.max(this.mouseDownPair.value, pair.value);
-        this.props.onValueSelect(this.props.chartState.valueSelectionId, 'in-progress', { minValue, maxValue });
+        this.props.onTimeSelect(this.props.chartState.timeSelectionId, 'in-progress', timeSelection);
+        this.props.onValueSelect(this.props.chartState.valueSelectionId, 'in-progress', valueSelection);
     }
 
     private onCanvasMouseUp(event: React.MouseEvent)
@@ -138,15 +161,12 @@ export default class WebGLChart extends React.PureComponent<Props>
             return;
         }
 
-        const pair = this.getTimeValueAtLocation(event.clientX, event.clientY);
+        const currentMouse = this.getTimeValueAtLocation(event.clientX, event.clientY);
+        const timeSelection = this.getTimeSelection(currentMouse);
+        const valueSelection = this.getValueSelection(currentMouse);
 
-        const minTime = Math.min(this.mouseDownPair.time, pair.time);
-        const maxTime = Math.max(this.mouseDownPair.time, pair.time);
-        this.props.onTimeSelect(this.props.chartState.timeSelectionId, 'done', { minTime, maxTime });
-
-        const minValue = Math.min(this.mouseDownPair.value, pair.value);
-        const maxValue = Math.max(this.mouseDownPair.value, pair.value);
-        this.props.onValueSelect(this.props.chartState.valueSelectionId, 'done', { minValue, maxValue });
+        this.props.onTimeSelect(this.props.chartState.timeSelectionId, 'done', timeSelection);
+        this.props.onValueSelect(this.props.chartState.valueSelectionId, 'done', valueSelection);
 
         this.mouseDownPair = EmptyMouseDownPair;
     }
@@ -155,8 +175,8 @@ export default class WebGLChart extends React.PureComponent<Props>
     {
         this.mouseDownPair = EmptyMouseDownPair;
 
-        this.props.onTimeSelect(this.props.chartState.id, 'cancelled', null);
-        this.props.onValueSelect(this.props.chartState.id, 'cancelled', null);
+        this.props.onTimeSelect(this.props.chartState.timeSelectionId, 'cancelled', null);
+        this.props.onValueSelect(this.props.chartState.valueSelectionId, 'cancelled', null);
     }
 
     private getTimeValueAtLocation(clientX: number, clientY: number): TimeValuePair

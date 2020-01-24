@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import DataStore from "simple-data-store";
 import WebGLChartStore, { State, WebGLChartState, WebGLDataSeries, WebGLTimeRange, WebGLValueRange } from "./webglChartStore";
 import WebGLChart, { WebGLSelectionState, TimeValuePair } from './webglChart';
+import WebGLChartPreview from './webglChartPreview';
 
 const rootEl = document.getElementById('root');
 const store = new DataStore<State>({
@@ -75,9 +76,14 @@ const middleDotsMesh = createLineMesh(50, middle, [1, 0, 0, 1], true, 10);
 store.execute(WebGLChartStore.setChartData('chart1', [
     minmaxMesh, middleDotsMesh, middleMesh
 ]));
+store.execute(WebGLChartStore.setChartData('chart2', [
+    minmaxMesh, middleDotsMesh, middleMesh
+], true, false, null, 'chart1'));
 
 function render(state: State)
 {
+    const chart1 = state.webglChartState.charts['chart1'];
+
     ReactDOM.render(<div>
         <h1>WebGL React</h1>
         { Object.values(state.webglChartState.charts).map((chartState: WebGLChartState) =>
@@ -97,6 +103,14 @@ function render(state: State)
                     />
             }
         )}
+
+            <WebGLChartPreview chartState={chart1}
+                onTimeSelect={(timeSelectionId, selectState, timeSelect) => onChartTimeSelect(timeSelectionId, selectState, timeSelect)}
+                timeSelection={state.webglChartState.timeSelections[chart1.timeSelectionId]}
+                timeViewport={state.webglChartState.timeViewports[chart1.timeSelectionId]}
+                valueSelection={state.webglChartState.valueSelections[chart1.valueSelectionId]}
+                valueViewport={state.webglChartState.valueViewports[chart1.valueSelectionId]}
+                />
     </div>, rootEl);
 }
 

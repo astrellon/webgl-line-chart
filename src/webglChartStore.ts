@@ -17,6 +17,11 @@ export interface WebGLChartState
     readonly id: string;
     readonly timeSelectionId: string;
     readonly valueSelectionId: string;
+    readonly enableTimeSelect: boolean;
+    readonly enableValueSelect: boolean;
+
+    readonly originalTimeViewport: WebGLTimeRange;
+    readonly originalValueViewport: WebGLValueRange;
 }
 
 export interface WebGLDataSeries
@@ -166,43 +171,32 @@ function calculateTimeRange(dataSeries: WebGLDataSeries): WebGLTimeRange
 
 export default class WebGLChartStore
 {
-    public static setChartData(chartId: string, dataSeries: WebGLDataSeries[]): Modifier<State>
+    public static setChartData(chartId: string, dataSeries: WebGLDataSeries[], enableTimeSelect: boolean = true, enableValueSelect: boolean = true, valueViewportId?: string, timeViewportId?: string): Modifier<State>
     {
         return (state: State) =>
         {
-            let chartState = state.webglChartState.charts[chartId];
-            let valueViewports = state.webglChartState.valueViewports;
-            let timeViewports = state.webglChartState.timeViewports;
+            const valueViewport = calculateValueRangeForAll(dataSeries);
+            const timeViewport = calculateTimeRangeForAll(dataSeries);
 
-            if (!chartState)
+            const chartState =
             {
-                chartState =
-                {
-                    dataSeries: dataSeries,
-                    id: chartId,
-                    timeSelectionId: chartId,
-                    valueSelectionId: chartId
-                }
-
-                const valueViewport = calculateValueRangeForAll(dataSeries);
-                const timeViewport = calculateTimeRangeForAll(dataSeries);
-
-                valueViewports = {
-                    ...valueViewports,
-                    [chartState.valueSelectionId]: valueViewport
-                }
-                timeViewports = {
-                    ...timeViewports,
-                    [chartState.timeSelectionId]: timeViewport
-                }
+                dataSeries: dataSeries,
+                id: chartId,
+                timeSelectionId: timeViewportId || chartId,
+                valueSelectionId: valueViewportId || chartId,
+                enableTimeSelect,
+                enableValueSelect,
+                originalTimeViewport: timeViewport,
+                originalValueViewport: valueViewport
             }
-            else
-            {
-                chartState =
-                {
-                    ...chartState,
-                    dataSeries: dataSeries
-                }
+
+            const valueViewports = {
+                ...state.webglChartState.valueViewports,
+                [chartState.valueSelectionId]: valueViewport
+            }
+            const timeViewports = {
+                ...state.webglChartState.timeViewports,
+                [chartState.timeSelectionId]: timeViewport
             }
 
             return modifyWebGL(state, {

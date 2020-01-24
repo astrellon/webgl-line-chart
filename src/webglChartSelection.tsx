@@ -3,30 +3,54 @@ import { WebGLTimeRange, WebGLValueRange } from './webglChartStore';
 
 interface Props
 {
-    readonly timeViewport: WebGLTimeRange;
-    readonly valueViewport: WebGLValueRange;
-    readonly timeSelect: WebGLTimeRange;
-    readonly valueSelect: WebGLValueRange;
+    readonly timeViewport?: WebGLTimeRange;
+    readonly valueViewport?: WebGLValueRange;
+    readonly timeSelect?: WebGLTimeRange;
+    readonly valueSelect?: WebGLValueRange;
+
+    readonly enableTimeSelect: boolean;
+    readonly enableValueSelect: boolean;
 }
 
 export default class WebGLChartSelection extends React.PureComponent<Props>
 {
     public render()
     {
-        const { valueViewport, timeViewport, timeSelect, valueSelect } = this.props;
-        if (timeSelect == null || valueSelect == null)
+        const { enableTimeSelect, enableValueSelect, valueViewport, timeViewport, timeSelect, valueSelect } = this.props;
+        if ((enableTimeSelect && timeSelect == null) || (enableValueSelect && valueSelect == null))
         {
             return null;
         }
 
-        const timeWidth = timeViewport.maxTime - timeViewport.minTime;
-        const height = valueViewport.maxValue - valueViewport.minValue;
+        let percentMinX = 0;
+        let percentMaxX = 1;
 
-        const percentMinX = (timeSelect.minTime - timeViewport.minTime) / timeWidth;
-        const percentMaxX = (timeSelect.maxTime - timeViewport.minTime) / timeWidth;
+        if (enableTimeSelect)
+        {
+            const timeWidth = timeViewport.maxTime - timeViewport.minTime;
+            percentMinX = (timeSelect.minTime - timeViewport.minTime) / timeWidth;
+            percentMaxX = (timeSelect.maxTime - timeViewport.minTime) / timeWidth;
+        }
 
-        const percentMinY = (valueSelect.minValue - valueViewport.minValue) / height;
-        const percentMaxY = (valueSelect.maxValue - valueViewport.minValue) / height;
+        let percentMinY = 0;
+        let percentMaxY = 1;
+
+        if (enableValueSelect)
+        {
+            const height = valueViewport.maxValue - valueViewport.minValue;
+            percentMinY = (valueSelect.minValue - valueViewport.minValue) / height;
+            percentMaxY = (valueSelect.maxValue - valueViewport.minValue) / height;
+        }
+
+        percentMinX = Math.max(0, percentMinX);
+        percentMinY = Math.max(0, percentMinY);
+        percentMaxX = Math.min(1, percentMaxX);
+        percentMaxY = Math.min(1, percentMaxY);
+
+        if (percentMaxX >= 1 && percentMaxY >= 1 && percentMinY <= 0 && percentMinX <= 0)
+        {
+            return null;
+        }
 
         const selectWidth = percentMaxX - percentMinX;
         const selectHeight = percentMaxY - percentMinY;
