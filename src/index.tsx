@@ -82,34 +82,35 @@ store.execute(WebGLChartStore.setChartData('chart2', [
 
 function render(state: State)
 {
-    const chart1 = state.webglChartState.charts['chart1'];
+    const webglState = state.webglChartState;
+    const chart1 = webglState.charts['chart1'];
 
     ReactDOM.render(<div>
         <h1>WebGL React</h1>
-        { Object.values(state.webglChartState.charts).map((chartState: WebGLChartState) =>
+        { Object.values(webglState.charts).map((chartState: WebGLChartState) =>
             {
-                const timeSelection = state.webglChartState.timeSelections[chartState.timeSelectionId];
-                const valueSelection = state.webglChartState.valueSelections[chartState.valueSelectionId];
-                const timeViewports = state.webglChartState.timeViewports[chartState.timeSelectionId];
-                const valueViewports = state.webglChartState.valueViewports[chartState.valueSelectionId];
+                const timeSelection = webglState.timeSelections[chartState.timeSelectionId];
+                const valueSelection = webglState.valueSelections[chartState.valueSelectionId];
+                const timeViewports = webglState.timeViewports[chartState.timeSelectionId];
+                const valueViewports = webglState.valueViewports[chartState.valueSelectionId];
 
                 return <WebGLChart key={chartState.id} chartState={chartState}
                     timeSelection={timeSelection} valueSelection={valueSelection}
                     timeViewport={timeViewports} valueViewport={valueViewports}
-                    onTimeSelect={(timeSelectionId, selectState, timeSelect) => onChartTimeSelect(timeSelectionId, selectState, timeSelect)}
-                    onValueSelect={(valueSelectionId, selectState, valueSelect) => onChartValueSelect(valueSelectionId, selectState, valueSelect)}
-                    onResetTimeViewport={(chartId, timeViewportId) => onChartResetTimeZoom(chartId, timeViewportId)}
-                    onResetValueViewport={(chartId, valueViewportId) => onChartResetValueZoom(chartId, valueViewportId)}
+                    onTimeSelect={onChartTimeSelect}
+                    onValueSelect={onChartValueSelect}
+                    onResetTimeViewport={onChartResetTimeZoom}
+                    onResetValueViewport={onChartResetValueZoom}
                     />
             }
         )}
 
             <WebGLChartPreview chartState={chart1}
-                onTimeSelect={(timeSelectionId, selectState, timeSelect) => onChartTimeSelect(timeSelectionId, selectState, timeSelect)}
-                timeSelection={state.webglChartState.timeSelections[chart1.timeSelectionId]}
-                timeViewport={state.webglChartState.timeViewports[chart1.timeSelectionId]}
-                valueSelection={state.webglChartState.valueSelections[chart1.valueSelectionId]}
-                valueViewport={state.webglChartState.valueViewports[chart1.valueSelectionId]}
+                onTimeSelect={onChartTimeSelect}
+                timeSelection={webglState.timeSelections[chart1.timeSelectionId]}
+                timeViewport={webglState.timeViewports[chart1.timeSelectionId]}
+                valueSelection={webglState.valueSelections[chart1.valueSelectionId]}
+                valueViewport={webglState.valueViewports[chart1.valueSelectionId]}
                 />
     </div>, rootEl);
 }
@@ -126,7 +127,6 @@ function onChartResetValueZoom(chartId: string, valueViewportId: string)
 
 function onChartTimeSelect(timeSelectionId: string, selectState: WebGLSelectionState, timeSelect: WebGLTimeRange)
 {
-    console.log('Time select', selectState, 'for', timeSelectionId);
     if (selectState === 'done')
     {
         store.execute(WebGLChartStore.setTimeSelection(timeSelectionId, null));

@@ -135,7 +135,7 @@ export default class WebGLChartPreview extends React.PureComponent<Props>
 
     private getTimeValueAtLocation(clientX: number, clientY: number): number
     {
-        const { timeViewport } = this.props;
+        const timeViewport = this.props.chartState.originalTimeViewport;
 
         const bounds = (event.target as HTMLElement).getBoundingClientRect();
         const x = clientX - bounds.left;

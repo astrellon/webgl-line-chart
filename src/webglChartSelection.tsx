@@ -16,11 +16,14 @@ export default class WebGLChartSelection extends React.PureComponent<Props>
 {
     public render()
     {
-        const { enableTimeSelect, enableValueSelect, valueViewport, timeViewport, timeSelect, valueSelect } = this.props;
-        if ((enableTimeSelect && timeSelect == null) || (enableValueSelect && valueSelect == null))
+        const { enableTimeSelect, enableValueSelect, valueViewport, timeViewport } = this.props;
+        if ((enableTimeSelect && this.props.timeSelect == null) && (enableValueSelect && this.props.valueSelect == null))
         {
             return null;
         }
+
+        const timeSelect = this.props.timeSelect || timeViewport;
+        const valueSelect = this.props.valueSelect || valueViewport;
 
         let percentMinX = 0;
         let percentMaxX = 1;
