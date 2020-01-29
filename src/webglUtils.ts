@@ -3,13 +3,12 @@ import WebGLMesh from "./webglMesh";
 
 export const DefaultVertexShader = `attribute vec4 vertexPos;
 
-uniform mat4 view;
-uniform mat4 camera;
-uniform mat4 model;
+uniform mat4 viewCameraMatrix;
+uniform vec4 offset;
 uniform float pointSize;
 
 void main() {
-  gl_Position = camera * view * model * vertexPos;
+  gl_Position = viewCameraMatrix * (vertexPos + offset);
   gl_PointSize = pointSize;
 }`;
 
@@ -89,7 +88,8 @@ export function createMinMaxMesh(gl: WebGLRenderingContext, dataSeries: WebGLDat
 
     const meshBuffer = createMesh(gl, meshPoints);
     const webglMesh = new WebGLMesh(meshBuffer, gl.TRIANGLE_STRIP, data.length, colour, 1);
-    webglMesh.transform.translateWorld([dataSeries.startTime, 0, 0]);
+    //webglMesh.transform.translateWorld([dataSeries.startTime, 0, 0]);
+    webglMesh.offset.add(dataSeries.startTime, 0);
     return webglMesh;
 }
 
@@ -108,6 +108,7 @@ export function createLineMesh(gl: WebGLRenderingContext, dataSeries: WebGLDataS
 
     const meshBuffer = createMesh(gl, meshPoints);
     const webglMesh = new WebGLMesh(meshBuffer, mode, data.length, colour, pointSize);
-    webglMesh.transform.translateWorld([dataSeries.startTime, 0, 0]);
+    //webglMesh.transform.translateWorld([dataSeries.startTime, 0, 0]);
+    webglMesh.offset.add(dataSeries.startTime, 0);
     return webglMesh;
 }

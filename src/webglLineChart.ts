@@ -14,13 +14,11 @@ export default class WebGLLineChart
     public gl: WebGLRenderingContext;
     private canvas: HTMLCanvasElement;
     private shaderProgram: WebGLProgram;
-    private viewMatrix: Matrix4x4 = new Matrix4x4();
     private cameraMatrix: Matrix4x4 = new Matrix4x4();
 
     private pointSizeUniform: WebGLUniformLocation;
-    private viewUniform: WebGLUniformLocation;
-    private cameraUniform: WebGLUniformLocation;
-    private modelUniform: WebGLUniformLocation;
+    private viewCameraMatrixUniform: WebGLUniformLocation;
+    private offsetUniform: WebGLUniformLocation;
     private fragColourUniform: WebGLUniformLocation;
 
     private meshes: DataSeriesBufferPair[] = [];
@@ -56,44 +54,32 @@ export default class WebGLLineChart
         this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
 
         this.pointSizeUniform = this.gl.getUniformLocation(this.shaderProgram, 'pointSize');
-        this.cameraUniform = this.gl.getUniformLocation(this.shaderProgram, 'camera');
-        this.viewUniform = this.gl.getUniformLocation(this.shaderProgram, 'view');
-        this.modelUniform = this.gl.getUniformLocation(this.shaderProgram, 'model');
+        this.viewCameraMatrixUniform = this.gl.getUniformLocation(this.shaderProgram, 'viewCameraMatrix');
+        this.offsetUniform = this.gl.getUniformLocation(this.shaderProgram, 'offset');
         this.fragColourUniform = this.gl.getUniformLocation(this.shaderProgram, 'fragColour');
-
-        this.viewMatrix.setBasicView(10);
-        this.cameraMatrix.setOrtho(-5, 5, -5, 5, 0.1, 50);
-
-        this.gl.uniformMatrix4fv(this.cameraUniform, false, this.cameraMatrix.data);
-        this.gl.uniformMatrix4fv(this.viewUniform, false, this.viewMatrix.data);
 
         this.gl.bindAttribLocation(this.shaderProgram, 0, 'vertexPos');
         this.gl.enableVertexAttribArray(0);
     }
 
-    public changePointSize(pointSize: number)
+    public drawMesh(mesh: WebGLMesh)
     {
-        this.gl.uniform1f(this.pointSizeUniform, pointSize);
-    }
-
-    public changeColour(colour: number[])
-    {
-        this.gl.uniform4fv(this.fragColourUniform, colour);
-    }
-
-    public changeModelTransform(model: Float32Array)
-    {
-        this.gl.uniformMatrix4fv(this.modelUniform, false, model);
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, mesh.buffer);
+        this.gl.vertexAttribPointer(0, 2, this.gl.FLOAT, false, 0, 0);
+        this.gl.uniform1f(this.pointSizeUniform, mesh.pointSize);
+        this.gl.uniform4fv(this.fragColourUniform, mesh.colour);
+        this.gl.uniform4fv(this.offsetUniform, mesh.offset.data);
+        this.gl.drawArrays(mesh.mode, 0, mesh.length);
     }
 
     public render(timeViewport: WebGLTimeRange, valueViewport: WebGLValueRange)
     {
-        this.cameraMatrix.setOrtho(timeViewport.minTime, timeViewport.maxTime, valueViewport.minValue, valueViewport.maxValue, 0.1, 50);
-        this.gl.uniformMatrix4fv(this.cameraUniform, false, this.cameraMatrix.data);
+        this.cameraMatrix.ortho(timeViewport.minTime, timeViewport.maxTime, valueViewport.minValue, valueViewport.maxValue, -10, 50);
+        this.gl.uniformMatrix4fv(this.viewCameraMatrixUniform, false, this.cameraMatrix.data);
 
         for (let dataPair of this.meshes)
         {
-            dataPair.mesh.render(this);
+            this.drawMesh(dataPair.mesh);
         }
     }
 
