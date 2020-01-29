@@ -52,7 +52,11 @@ export default class WebGLChart extends React.PureComponent<Props>
         this.webgl = new WebGLLineChart(this.canvas);
         this.webgl.init();
 
-        this.forceUpdate();
+        const { valueViewport, timeViewport, chartState } = this.props;
+        if (this.webgl.checkForDataSeriesChanges(chartState.dataSeries))
+        {
+            this.webgl.render(timeViewport, valueViewport);
+        }
     }
 
     public componentDidUpdate()
@@ -77,16 +81,16 @@ export default class WebGLChart extends React.PureComponent<Props>
                 <div className="webgl-chart__left-axis-bumper"></div>
                 <h1 className="webgl-chart__title">Title</h1>
                 <div className="webgl-chart__buttons">
-                    <button onClick={() => this.resetZoom()}>Reset</button>
+                    <button onClick={this.resetZoom}>Reset</button>
                 </div>
             </div>
             <div className="webgl-chart__body">
                 <WebGLChartLeftAxis minValue={valueViewport.minValue} maxValue={valueViewport.maxValue} />
 
                 <div className='webgl-chart__canvas-holder'
-                    onMouseDown={(e) => this.onCanvasMouseDown(e)}
-                    onMouseMove={(e) => this.onCanvasMouseMove(e)}
-                    onMouseUp={(e) => this.onCanvasMouseUp(e)}
+                    onMouseDown={this.onCanvasMouseDown}
+                    onMouseMove={this.onCanvasMouseMove}
+                    onMouseUp={this.onCanvasMouseUp}
                     >
                     <canvas className='webgl-chart__canvas' ref={this.canvasRef} />
                     <WebGLChartSelection valueViewport={valueViewport} timeViewport={timeViewport} timeSelect={timeSelection} valueSelect={valueSelection} enableTimeSelect={chartState.enableTimeSelect} enableValueSelect={chartState.enableValueSelect} />
@@ -99,31 +103,18 @@ export default class WebGLChart extends React.PureComponent<Props>
         </div>;
     }
 
-    private resetZoom()
+    private resetZoom = () =>
     {
         const { chartState } = this.props;
         this.props.onResetTimeViewport(chartState.id, chartState.timeSelectionId);
         this.props.onResetValueViewport(chartState.id, chartState.valueSelectionId);
     }
 
-    private onCanvasMouseDown(event: React.MouseEvent)
+    private onCanvasMouseDown = (event: React.MouseEvent) =>
     {
         this.cancelSelection();
 
         this.mouseDownPair = this.getTimeValueAtLocation(event.clientX, event.clientY);
-    }
-
-    private getTimeSelection(currentMouse: TimeValuePair)
-    {
-        if (!this.props.chartState.enableTimeSelect)
-        {
-            return this.props.timeViewport;
-        }
-
-        const minTime = Math.min(this.mouseDownPair.time, currentMouse.time);
-        const maxTime = Math.max(this.mouseDownPair.time, currentMouse.time);
-
-        return { minTime, maxTime }
     }
 
     private getValueSelection(currentMouse: TimeValuePair)
@@ -139,7 +130,7 @@ export default class WebGLChart extends React.PureComponent<Props>
         return { minValue, maxValue }
     }
 
-    private onCanvasMouseMove(event: React.MouseEvent)
+    private onCanvasMouseMove = (event: React.MouseEvent) =>
     {
         if (this.mouseDownPair.value == null)
         {
@@ -154,7 +145,7 @@ export default class WebGLChart extends React.PureComponent<Props>
         this.props.onValueSelect(this.props.chartState.valueSelectionId, 'in-progress', valueSelection);
     }
 
-    private onCanvasMouseUp(event: React.MouseEvent)
+    private onCanvasMouseUp = (event: React.MouseEvent) =>
     {
         if (this.mouseDownPair.value == null)
         {
@@ -169,6 +160,19 @@ export default class WebGLChart extends React.PureComponent<Props>
         this.props.onValueSelect(this.props.chartState.valueSelectionId, 'done', valueSelection);
 
         this.mouseDownPair = EmptyMouseDownPair;
+    }
+
+    private getTimeSelection(currentMouse: TimeValuePair)
+    {
+        if (!this.props.chartState.enableTimeSelect)
+        {
+            return this.props.timeViewport;
+        }
+
+        const minTime = Math.min(this.mouseDownPair.time, currentMouse.time);
+        const maxTime = Math.max(this.mouseDownPair.time, currentMouse.time);
+
+        return { minTime, maxTime }
     }
 
     private cancelSelection()

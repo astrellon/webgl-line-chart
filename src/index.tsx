@@ -126,6 +126,7 @@ function onChartResetValueZoom(chartId: string, valueViewportId: string)
 
 function onChartTimeSelect(timeSelectionId: string, selectState: WebGLSelectionState, timeSelect: WebGLTimeRange)
 {
+    console.log('Time select', selectState, 'for', timeSelectionId);
     if (selectState === 'done')
     {
         store.execute(WebGLChartStore.setTimeSelection(timeSelectionId, null));

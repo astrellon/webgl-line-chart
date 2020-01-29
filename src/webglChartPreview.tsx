@@ -61,9 +61,9 @@ export default class WebGLChartPreview extends React.PureComponent<Props>
                 <WebGLChartLeftAxis minValue={originalValueViewport.minValue} maxValue={originalValueViewport.maxValue} />
 
                 <div className='webgl-chart__canvas-holder'
-                    onMouseDown={(e) => this.onCanvasMouseDown(e)}
-                    onMouseMove={(e) => this.onCanvasMouseMove(e)}
-                    onMouseUp={(e) => this.onCanvasMouseUp(e)}
+                    onMouseDown={this.onCanvasMouseDown}
+                    onMouseMove={this.onCanvasMouseMove}
+                    onMouseUp={this.onCanvasMouseUp}
                     >
                     <canvas className='webgl-chart__canvas' ref={this.canvasRef} />
                     <WebGLChartSelection timeViewport={originalTimeViewport} timeSelect={timeSelection} enableTimeSelect={true} enableValueSelect={true} valueSelect={valueSelection} valueViewport={originalValueViewport} />
@@ -78,11 +78,39 @@ export default class WebGLChartPreview extends React.PureComponent<Props>
         </div>;
     }
 
-    private onCanvasMouseDown(event: React.MouseEvent)
+    private onCanvasMouseDown = (event: React.MouseEvent) =>
     {
         this.cancelSelection();
 
         this.mouseDownTime = this.getTimeValueAtLocation(event.clientX, event.clientY);
+    }
+
+    private onCanvasMouseMove = (event: React.MouseEvent) =>
+    {
+        if (this.mouseDownTime == null)
+        {
+            return;
+        }
+
+        const currentMouse = this.getTimeValueAtLocation(event.clientX, event.clientY);
+        const timeSelection = this.getTimeSelection(currentMouse);
+
+        this.props.onTimeSelect(this.props.chartState.timeSelectionId, 'in-progress', timeSelection);
+    }
+
+    private onCanvasMouseUp = (event: React.MouseEvent) =>
+    {
+        if (this.mouseDownTime == null)
+        {
+            return;
+        }
+
+        const currentMouse = this.getTimeValueAtLocation(event.clientX, event.clientY);
+        const timeSelection = this.getTimeSelection(currentMouse);
+
+        this.props.onTimeSelect(this.props.chartState.timeSelectionId, 'done', timeSelection);
+
+        this.mouseDownTime = null;
     }
 
     private getTimeSelection(currentMouse: number)
@@ -96,34 +124,6 @@ export default class WebGLChartPreview extends React.PureComponent<Props>
         const maxTime = Math.max(this.mouseDownTime, currentMouse);
 
         return { minTime, maxTime }
-    }
-
-    private onCanvasMouseMove(event: React.MouseEvent)
-    {
-        if (this.mouseDownTime == null)
-        {
-            return;
-        }
-
-        const currentMouse = this.getTimeValueAtLocation(event.clientX, event.clientY);
-        const timeSelection = this.getTimeSelection(currentMouse);
-
-        this.props.onTimeSelect(this.props.chartState.timeSelectionId, 'in-progress', timeSelection);
-    }
-
-    private onCanvasMouseUp(event: React.MouseEvent)
-    {
-        if (this.mouseDownTime == null)
-        {
-            return;
-        }
-
-        const currentMouse = this.getTimeValueAtLocation(event.clientX, event.clientY);
-        const timeSelection = this.getTimeSelection(currentMouse);
-
-        this.props.onTimeSelect(this.props.chartState.timeSelectionId, 'done', timeSelection);
-
-        this.mouseDownTime = null;
     }
 
     private cancelSelection()
