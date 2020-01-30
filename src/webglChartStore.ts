@@ -126,6 +126,11 @@ function calculateValueRangeForAll(dataSeries: WebGLDataSeries[]): WebGLValueRan
         maxValue = Math.max(viewport.maxValue, maxValue);
     }
 
+    const middle = (maxValue + minValue) * 0.5;
+    const half = maxValue - middle;
+    minValue = middle - half * 1.2;
+    maxValue = middle + half * 1.2;
+
     return { minValue, maxValue }
 }
 
@@ -289,15 +294,19 @@ export default class WebGLChartStore
                 return state;
             }
 
-            const middle = (viewport.maxTime + viewport.minTime) * 0.5;
-            const diff = viewport.maxTime - middle;
-
-            const newViewport = {
-                maxTime: middle + diff * factor,
-                minTime: middle - diff * factor
-            }
-
+            const newViewport = zoomTimeRange(viewport, factor);
             return modifyTimeViewport(state, timeViewportId, newViewport);
         }
+    }
+}
+
+export function zoomTimeRange(viewport: WebGLTimeRange, factor: number): WebGLTimeRange
+{
+    const middle = (viewport.maxTime + viewport.minTime) * 0.5;
+    const diff = viewport.maxTime - middle;
+
+    return {
+        maxTime: middle + diff * factor,
+        minTime: middle - diff * factor
     }
 }

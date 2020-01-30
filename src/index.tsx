@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import DataStore from "simple-data-store";
-import WebGLChartStore, { State, WebGLChartState, WebGLDataSeries, WebGLTimeRange, WebGLValueRange } from "./webglChartStore";
+import WebGLChartStore, { State, WebGLChartState, WebGLDataSeries, WebGLTimeRange, WebGLValueRange, zoomTimeRange } from "./webglChartStore";
 import WebGLChart, { WebGLSelectionState, TimeValuePair } from './webglChart';
 import WebGLChartPreview from './webglChartPreview';
 
@@ -19,10 +19,10 @@ const store = new DataStore<State>({
 function createSineWave(nPoints: number, xOffset: number, yOffset: number, amplitude: number): number[]
 {
     const meshData = new Array<number>(nPoints);
-    for (let x = 0, i = 0; x < nPoints; x++, i++)
+    for (let x = 0, i = 0; x <= nPoints; x++, i++)
     {
         const normX = (x / nPoints) * 8 - 4;
-        const normY = Math.sin(normX * 10 + xOffset) * amplitude + yOffset + Math.random() * 0.2 - 0.1;
+        const normY = Math.sin(normX * 10 + xOffset) * amplitude + yOffset;// + Math.random() * 0.2 - 0.1;
         meshData[i] = normY;
     }
     return meshData;
@@ -65,20 +65,21 @@ function createLineMesh(startTime: number, data: number[], colour: number[], isD
     }
 }
 
-const top = createSineWave(500, 0, 2, 1);
-const bottom = createSineWave(500, 1, -2, 1.1);
-const middle = createSineWave(500, 0.5, 0, 0.5);
+// const top = createSineWave(4_000_000, 0, 2, 1);
+// const bottom = createSineWave(4_000_000, 1, -2, 1.1);
+const middle = createSineWave(10, 0.5, 0, 0.5);
 
-const minmaxMesh = createMinMaxMesh(50, top, bottom, [1, 0, 0, 0.5]);
-const middleMesh = createLineMesh(50, middle, [1, 0, 0, 1], false);
-const middleDotsMesh = createLineMesh(50, middle, [1, 0, 0, 1], true, 10);
+//const minmaxMesh = createMinMaxMesh(50, top, bottom, [1, 0.5, 0.5, 1]);
+const middleMesh = createLineMesh(0, middle, [1, 0, 0, 1], false);
+// const middleDotsMesh = createLineMesh(50, middle, [1, 0, 0, 1], true, 10);
 
 store.execute(WebGLChartStore.setChartData('chart1', [
-    minmaxMesh, middleDotsMesh, middleMesh
+    //minmaxMesh, middleDotsMesh, middleMesh
+    middleMesh
 ]));
-store.execute(WebGLChartStore.setChartData('chart2', [
-    minmaxMesh, middleDotsMesh, middleMesh
-], true, false, null, 'chart1'));
+// store.execute(WebGLChartStore.setChartData('chart2', [
+//     minmaxMesh
+// ], true, false, null, 'chart1'));
 
 function render(state: State)
 {
@@ -105,13 +106,13 @@ function render(state: State)
             }
         )}
 
-            <WebGLChartPreview chartState={chart1}
-                onTimeSelect={onChartTimeSelect}
-                timeSelection={webglState.timeSelections[chart1.timeSelectionId]}
-                timeViewport={webglState.timeViewports[chart1.timeSelectionId]}
-                valueSelection={webglState.valueSelections[chart1.valueSelectionId]}
-                valueViewport={webglState.valueViewports[chart1.valueSelectionId]}
-                />
+        {/* <WebGLChartPreview chartState={chart1}
+            onTimeSelect={onChartTimeSelect}
+            timeSelection={webglState.timeSelections[chart1.timeSelectionId]}
+            timeViewport={webglState.timeViewports[chart1.timeSelectionId]}
+            valueSelection={webglState.valueSelections[chart1.valueSelectionId]}
+            valueViewport={webglState.valueViewports[chart1.valueSelectionId]}
+            /> */}
     </div>, rootEl);
 }
 
@@ -175,4 +176,40 @@ rootEl.addEventListener('wheel', (e) =>
     {
         store.execute(WebGLChartStore.zoomTimeViewport('chart1', 1.1));
     }
-})
+});
+
+let stopped = false;
+document.getElementById('stop').addEventListener('click', () =>
+{
+    stopped = true;
+});
+
+const fpsEl = document.getElementById('fps') as HTMLSpanElement;
+
+let prevTime = 0;
+
+function updateZoom()
+{
+    const now = Date.now();
+    const angle = Math.cos(now / 1000);
+    const factor = angle * 0.2 + 1;
+    const origViewport = store.state().webglChartState.charts['chart1'].originalTimeViewport;
+    const newViewport = zoomTimeRange(origViewport, factor);
+    store.execute(WebGLChartStore.setTimeViewport('chart1', newViewport));
+
+    if (prevTime > 0)
+    {
+        const fps = 1000 / (now - prevTime);
+        fpsEl.innerText = `FPS: ${fps.toFixed(2)}`;
+        //console.log('FPS:', fps.toFixed(2));
+    }
+
+    prevTime = now;
+
+    if (!stopped)
+    {
+        window.requestAnimationFrame(() => updateZoom());
+    }
+}
+
+updateZoom();

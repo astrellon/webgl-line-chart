@@ -1,7 +1,8 @@
 import WebGLMesh from "./webglMesh";
-import { WebGLDataSeries, WebGLTimeRange, WebGLValueRange } from "./webglChartStore";
-import { initShaderProgram, createLineMesh, createMinMaxMesh } from "./webglUtils";
+import { WebGLDataSeries, WebGLTimeRange, WebGLValueRange, zoomTimeRange } from "./webglChartStore";
+import { initShaderProgram, createLineMesh, createMinMaxMesh, getNumberOfIndices, createLineStroke } from "./webglUtils";
 import Matrix4x4 from "./matrix4x4";
+import Vector4 from "./vector4";
 
 interface DataSeriesBufferPair
 {
@@ -19,10 +20,19 @@ export default class WebGLLineChart
     private pointSizeUniform: WebGLUniformLocation;
     private viewCameraMatrixUniform: WebGLUniformLocation;
     private offsetUniform: WebGLUniformLocation;
+    private viewportUniform: WebGLUniformLocation;
     private fragColourUniform: WebGLUniformLocation;
 
     private meshes: DataSeriesBufferPair[] = [];
     private prevCharts: WebGLDataSeries[] = null;
+
+    private prevPointSize: number = null;
+    private prevFragColour: Vector4 = null;
+    private prevOffset: Vector4 = null;
+    private prevBuffer: WebGLBuffer = null;
+    private prevIndexBuffer: WebGLBuffer = null;
+
+    private uintElementIndexExt: OES_element_index_uint;
 
     constructor(canvas: HTMLCanvasElement)
     {
@@ -31,7 +41,7 @@ export default class WebGLLineChart
         // Premultiplied Alpha fixes an issue in Firefox where transparent
         // chart colours render weirdly.
         this.gl = this.canvas.getContext('webgl', {
-            premultipliedAlpha: false
+            //premultipliedAlpha: false
         });
 
         const width = this.canvas.offsetWidth;
@@ -58,24 +68,76 @@ export default class WebGLLineChart
         this.offsetUniform = this.gl.getUniformLocation(this.shaderProgram, 'offset');
         this.fragColourUniform = this.gl.getUniformLocation(this.shaderProgram, 'fragColour');
 
+        this.viewportUniform = this.gl.getUniformLocation(this.shaderProgram, 'viewport');
+
+        this.uintElementIndexExt = this.gl.getExtension('OES_element_index_uint');
+
         this.gl.bindAttribLocation(this.shaderProgram, 0, 'vertexPos');
         this.gl.enableVertexAttribArray(0);
+
+        this.gl.bindAttribLocation(this.shaderProgram, 1, 'vertexNormal');
+        this.gl.enableVertexAttribArray(1);
     }
 
     public drawMesh(mesh: WebGLMesh)
     {
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, mesh.buffer);
-        this.gl.vertexAttribPointer(0, 2, this.gl.FLOAT, false, 0, 0);
-        this.gl.uniform1f(this.pointSizeUniform, mesh.pointSize);
-        this.gl.uniform4fv(this.fragColourUniform, mesh.colour);
-        this.gl.uniform4fv(this.offsetUniform, mesh.offset.data);
-        this.gl.drawArrays(mesh.mode, 0, mesh.length);
+        if (this.prevBuffer !== mesh.buffer)
+        {
+            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, mesh.buffer);
+            this.gl.vertexAttribPointer(0, 2, this.gl.FLOAT, false, 0, 0);
+            this.prevBuffer = mesh.buffer;
+        }
+
+        if (this.prevIndexBuffer !== mesh.indexBuffer)
+        {
+            this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, mesh.indexBuffer);
+            this.prevIndexBuffer = mesh.indexBuffer;
+        }
+
+        if (mesh.normalBuffer)
+        {
+            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, mesh.normalBuffer);
+            this.gl.vertexAttribPointer(1, 2, this.gl.FLOAT, false, 0, 0);
+        }
+
+        if (this.prevPointSize !== mesh.pointSize)
+        {
+            console.log('Changing point size');
+            this.gl.uniform1f(this.pointSizeUniform, mesh.pointSize);
+            this.prevPointSize = mesh.pointSize;
+        }
+
+        if (!mesh.colour.equals(this.prevFragColour))
+        {
+            console.log('Changing frag colour');
+            this.gl.uniform4fv(this.fragColourUniform, mesh.colour.data);
+            this.prevFragColour = mesh.colour;
+        }
+
+        if (!mesh.offset.equals(this.prevOffset))
+        {
+            console.log('Changing offset');
+            this.gl.uniform4fv(this.offsetUniform, mesh.offset.data);
+            this.prevOffset = mesh.offset;
+        }
+
+        const numIndies = getNumberOfIndices(mesh.length);
+        this.gl.drawElements(mesh.mode, numIndies, this.gl.UNSIGNED_INT, 0);
     }
 
     public render(timeViewport: WebGLTimeRange, valueViewport: WebGLValueRange)
     {
-        this.cameraMatrix.ortho(timeViewport.minTime, timeViewport.maxTime, valueViewport.minValue, valueViewport.maxValue, -10, 50);
-        this.gl.uniformMatrix4fv(this.viewCameraMatrixUniform, false, this.cameraMatrix.data);
+        //this.cameraMatrix.ortho(timeViewport.minTime, timeViewport.maxTime, valueViewport.minValue, valueViewport.maxValue, -10, 50);
+        //this.cameraMatrix.ortho(0, 1, 0, 1, -10, 50);
+        //this.gl.uniformMatrix4fv(this.viewCameraMatrixUniform, false, this.cameraMatrix.data);
+
+        const valueHeight = valueViewport.maxValue - valueViewport.minValue;
+        const timeWidth = timeViewport.maxTime - timeViewport.minTime;
+
+        //const ratio = (timeWidth / this.canvas.width);// * this.canvas.height / this.canvas.width;
+        //this.gl.uniform1f(this.aspectRatioUniform, ratio);
+        const viewport = new Vector4([timeViewport.minTime, 1 / timeWidth, valueViewport.minValue, 1 / valueHeight]);
+        this.gl.uniform4fv(this.viewportUniform, viewport.data);
 
         for (let dataPair of this.meshes)
         {
@@ -131,7 +193,8 @@ export default class WebGLLineChart
             {
                 if (dataSeries.type === 'line')
                 {
-                    const mesh = createLineMesh(this.gl, dataSeries, this.gl.LINE_STRIP, dataSeries.pointSize);
+                    //const mesh = createLineMesh(this.gl, dataSeries, this.gl.LINE_STRIP, dataSeries.pointSize);
+                    const mesh = createLineStroke(this.gl, dataSeries);
                     this.meshes.push({mesh, data: dataSeries});
                 }
                 else if (dataSeries.type === 'minmax')
